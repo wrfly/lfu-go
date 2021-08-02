@@ -6,7 +6,7 @@ import (
 )
 
 type Eviction struct {
-	Key   string
+	Key   uint64
 	Value interface{}
 }
 
@@ -16,7 +16,7 @@ type Cache struct {
 	// is disabled.
 	UpperBound      int
 	LowerBound      int
-	values          map[string]*cacheEntry
+	values          map[uint64]*cacheEntry
 	freqs           *list.List
 	len             int
 	lock            *sync.Mutex
@@ -24,7 +24,7 @@ type Cache struct {
 }
 
 type cacheEntry struct {
-	key      string
+	key      uint64
 	value    interface{}
 	freqNode *list.Element
 }
@@ -36,13 +36,13 @@ type listEntry struct {
 
 func New() *Cache {
 	c := new(Cache)
-	c.values = make(map[string]*cacheEntry)
+	c.values = make(map[uint64]*cacheEntry)
 	c.freqs = list.New()
 	c.lock = new(sync.Mutex)
 	return c
 }
 
-func (c *Cache) Get(key string) interface{} {
+func (c *Cache) Get(key uint64) interface{} {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if e, ok := c.values[key]; ok {
@@ -52,7 +52,7 @@ func (c *Cache) Get(key string) interface{} {
 	return nil
 }
 
-func (c *Cache) Set(key string, value interface{}) {
+func (c *Cache) Set(key uint64, value interface{}) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if e, ok := c.values[key]; ok {
@@ -94,7 +94,7 @@ func (c *Cache) evict(count int) int {
 	var evicted int
 	for i := 0; i < count; {
 		if place := c.freqs.Front(); place != nil {
-			for entry, _ := range place.Value.(*listEntry).entries {
+			for entry := range place.Value.(*listEntry).entries {
 				if i < count {
 					if c.EvictionChannel != nil {
 						c.EvictionChannel <- Eviction{
